@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>War Game</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:#111;color:#fff;font-family:Arial;text-align:center;overflow:hidden}
+#map{width:100vw;height:80vh;display:block;touch-action:none}
+#ui{padding:10px;background:#222;height:20vh}
+button{padding:10px 20px;font-size:16px;margin:5px;border-radius:5px;background:#0a0;color:#fff;border:none}
+</style>
+</head>
+<body>
+<div id="ui">Coins: <span id="coins">50</span><br><br>
+<button onclick="buy()">Buy Soldier (3)</button></div>
+<canvas id="map"></canvas>
+<script>
+const cv = document.getElementById('map');
+const ctx = cv.getContext('2d');
+let cw = 8, ch = 8, cell = 40;
+let cells = {}, coins = 50, sel = null;
+
+function resize() {
+    cv.width = window.innerWidth;
+    cv.height = window.innerHeight * 0.8;
+    cell = Math.min(cv.width / cw, cv.height / ch);
+    draw();
+}
+window.onresize = resize;
+
+function init() {
+    cells = {};
+    for(let x=0; x<cw; x++) {
+        for(let y=0; y<ch; y++) {
+            cells[x+','+y] = {owner: -1, unit: null};
+        }
+    }
+    cells['1,1'] = {owner: 0, unit: 'soldier'};
+    cells['6,6'] = {owner: 1, unit: 'soldier'};
+    draw();
+}
+
+function draw() {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, cv.width, cv.height);
+    for(let x=0; x<cw; x++) {
+        for(let y=0; y<ch; y++) {
+            let c = cells[x+','+y];
+            let px = x * cell, py = y * cell;
+            ctx.fillStyle = c.owner == 0 ? '#500' : (c.owner == 1 ? '#005' : '#333');
+            ctx.fillRect(px, py, cell, cell);
+            ctx.strokeStyle = '#000';
+            ctx.strokeRect(px, py, cell, cell);
+            if(c.unit) {
+                ctx.fillStyle = c.owner == 0 ? 'red' : 'blue';
+                ctx.beginPath();
+                ctx.arc(px + cell/2, py + cell/2, cell*0.3, 0, Math.PI*2);
+                ctx.fill();
+            }
+        }
+    }
+    if(sel) {
+        ctx.strokeStyle = 'yellow';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(sel[0] * cell, sel[1] * cell, cell, cell);
+    }
+}
+
+cv.addEventListener('pointerdown', e => {
+    let r = cv.getBoundingClientRect();
+    let x = Math.floor((e.clientX - r.left) / cell);
+    let y = Math.floor((e.clientY - r.top) / cell);
+    if(x<0 || y<0 || x>=cw || y>=ch) return;
+    let c = cells[x+','+y];
+    
+    if(sel) {
+        // Move soldier
+        cells[sel[0]+','+sel[1]].unit = null;
+        c.unit = 'soldier';
+        sel = null;
+    } else if(c.unit && c.owner == 0) {
+        sel = [x, y];
+    }
+    draw();
+});
+
+function buy() {
+    if(coins >= 3) {
+        coins -= 3;
+        document.getElementById('coins').innerText = coins;
+        // Spawn near 1,1
+        for(let x=0; x<cw; x++) {
+            for(let y=0; y<ch; y++) {
+                if(!cells[x+','+y].unit && cells[x+','+y].owner == 0) {
+                    cells[x+','+y].unit = 'soldier';
+                    draw();
+                    return;
+                }
+            }
+        }
+    }
+}
+
+window.onload = () => {
+    resize();
+    init();
+};
+</script>
+</body>
+</html>
